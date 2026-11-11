@@ -4,8 +4,6 @@ from drafter import *
 
 
 # Website information
-set_website_title("GameDay Stats")
-
 set_site_information(
     author="Kaitlyn O'Brien",
     description=(
@@ -167,7 +165,7 @@ def view_players(state: State) -> Page:
             content.append(Button(
                 "View Player Details",
                 "player_details",
-                [Argument("player_id", player.player_id)]
+                {"player_id": player.player_id}
             ))
 
     content.extend([
@@ -199,13 +197,13 @@ def player_details(state: State, player_id: int) -> Page:
         Button(
             "Edit Statistics",
             "edit_stats",
-            [Argument("player_id", player.player_id)]
+            {"player_id": player.player_id}
         ),
 
         Button(
             "Delete Player",
             "delete_player",
-            [Argument("player_id", player.player_id)]
+            {"player_id": player.player_id}
         ),
 
         Button("Back to Roster", "view_players"),
@@ -237,13 +235,13 @@ def edit_stats(state: State, player_id: int) -> Page:
         Button(
             "Save Changes",
             "update_stats",
-            [Argument("player_id", player.player_id)]
+            {"player_id": player.player_id}
         ),
 
         Button(
             "Cancel",
             "player_details",
-            [Argument("player_id", player.player_id)]
+            {"player_id": player.player_id}
         )
     ])
 
@@ -388,3 +386,4 @@ def leaderboard(state: State,
 
 
 start_server(State())
+
