@@ -3,6 +3,21 @@ from dataclasses import dataclass, field
 from drafter import *
 
 
+# Website information
+set_website_title("GameDay Stats")
+
+set_site_information(
+    author="Kaitlyn O'Brien",
+    description=(
+        "GameDay Stats is a website for tracking player statistics, "
+        "managing team rosters, and comparing player performance."
+    ),
+    sources="Python class materials and Drafter documentation.",
+    planning="See the GameDay Stats planning and brainstorming document.",
+    links=["https://github.com/kaitob2114/gameday-stats"]
+)
+
+
 @dataclass
 class Player:
     """Store one player's information and statistics."""
@@ -77,6 +92,7 @@ def add_player(state: State) -> Page:
     """Display the add player form."""
     return Page(state, [
         Header("Add a Player"),
+        Text(state.message),
         Text("Enter the player's information."),
         Text("Player Name:"),
         TextBox("name"),
@@ -90,6 +106,8 @@ def add_player(state: State) -> Page:
         TextBox("assists", 0, "number"),
         Text("Rebounds:"),
         TextBox("rebounds", 0, "number"),
+        Text("Games Played:"),
+        TextBox("games_played", 0, "number"),
         Button("Save Player", "save_player"),
         Button("Back Home", "index")
     ])
@@ -97,8 +115,8 @@ def add_player(state: State) -> Page:
 
 @route
 def save_player(state: State, name: str, sport: str,
-                points: int, assists: int,
-                rebounds: int) -> Page:
+                points: int, assists: int, rebounds: int,
+                games_played: int) -> Page:
     """Validate and save a new player."""
     if name.strip() == "":
         state.message = "Please enter a player name."
@@ -109,18 +127,19 @@ def save_player(state: State, name: str, sport: str,
             state.message = "This player already exists."
             return add_player(state)
 
-    if points < 0 or assists < 0 or rebounds < 0:
+    if (points < 0 or assists < 0 or rebounds < 0
+            or games_played < 0):
         state.message = "Statistics cannot be negative."
         return add_player(state)
 
     new_player = Player(
-        state.next_player_id,
-        name.strip(),
-        sport,
-        points,
-        assists,
-        rebounds,
-        1
+        player_id=state.next_player_id,
+        name=name.strip(),
+        sport=sport,
+        points=points,
+        assists=assists,
+        rebounds=rebounds,
+        games_played=games_played
     )
 
     state.players.append(new_player)
@@ -212,6 +231,8 @@ def edit_stats(state: State, player_id: int) -> Page:
         TextBox("assists", player.assists, "number"),
         Text("Rebounds:"),
         TextBox("rebounds", player.rebounds, "number"),
+        Text("Games Played:"),
+        TextBox("games_played", player.games_played, "number"),
 
         Button(
             "Save Changes",
@@ -230,7 +251,7 @@ def edit_stats(state: State, player_id: int) -> Page:
 @route
 def update_stats(state: State, player_id: int,
                  points: int, assists: int,
-                 rebounds: int) -> Page:
+                 rebounds: int, games_played: int) -> Page:
     """Save updated statistics for a player."""
     player = find_player(state, player_id)
 
@@ -238,14 +259,15 @@ def update_stats(state: State, player_id: int,
         state.message = "Player not found."
         return view_players(state)
 
-    if points < 0 or assists < 0 or rebounds < 0:
+    if (points < 0 or assists < 0 or rebounds < 0
+            or games_played < 0):
         state.message = "Statistics cannot be negative."
         return edit_stats(state, player_id)
 
     player.points = points
     player.assists = assists
     player.rebounds = rebounds
-    player.games_played += 1
+    player.games_played = games_played
 
     state.message = player.name + "'s statistics were updated!"
 
@@ -366,4 +388,3 @@ def leaderboard(state: State,
 
 
 start_server(State())
-
