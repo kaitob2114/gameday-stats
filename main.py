@@ -22,9 +22,9 @@ class Player:
     player_id: int
     name: str
     sport: str
-    points: int
-    assists: int
-    rebounds: int
+    stat_one: int
+    stat_two: int
+    stat_three: int
     games_played: int
 
 
@@ -36,6 +36,16 @@ class State:
     team_name: str = "My Team"
     message: str = "Welcome to GameDay Stats!"
     next_player_id: int = 1
+
+
+def get_stat_labels(sport: str) -> tuple[str, str, str]:
+    """Return the correct statistic names for each sport."""
+    if sport == "Soccer":
+        return ("Goals", "Assists", "Shots")
+    elif sport == "Softball":
+        return ("Hits", "Runs", "RBIs")
+    else:
+        return ("Points", "Assists", "Rebounds")
 
 
 def find_player(state: State, player_id: int) -> Player | None:
@@ -86,24 +96,29 @@ def save_team_name(state: State, team_name: str) -> Page:
 
 
 @route
-def add_player(state: State) -> Page:
-    """Display the add player form."""
+def add_player(state: State, sport: str = "Basketball") -> Page:
+    """Display the add player form for the selected sport."""
+    stat_one, stat_two, stat_three = get_stat_labels(sport)
+    state.selected_sport = sport
+
     return Page(state, [
         Header("Add a Player"),
         Text(state.message),
         Text("Enter the player's information."),
         Text("Player Name:"),
         TextBox("name"),
-        Text("Sport:"),
+        Text("Choose a Sport:"),
         SelectBox("sport", [
             "Basketball", "Soccer", "Softball"
-        ], state.selected_sport),
-        Text("Points:"),
-        TextBox("points", 0, "number"),
-        Text("Assists:"),
-        TextBox("assists", 0, "number"),
-        Text("Rebounds:"),
-        TextBox("rebounds", 0, "number"),
+        ], sport),
+        Button("Choose Sport", "add_player"),
+        Header("Player Statistics"),
+        Text(stat_one + ":"),
+        TextBox("stat_one", 0, "number"),
+        Text(stat_two + ":"),
+        TextBox("stat_two", 0, "number"),
+        Text(stat_three + ":"),
+        TextBox("stat_three", 0, "number"),
         Text("Games Played:"),
         TextBox("games_played", 0, "number"),
         Button("Save Player", "save_player"),
@@ -113,30 +128,31 @@ def add_player(state: State) -> Page:
 
 @route
 def save_player(state: State, name: str, sport: str,
-                points: int, assists: int, rebounds: int,
-                games_played: int) -> Page:
+                stat_one: int, stat_two: int,
+                stat_three: int, games_played: int) -> Page:
     """Validate and save a new player."""
     if name.strip() == "":
         state.message = "Please enter a player name."
-        return add_player(state)
+        return add_player(state, sport)
 
     for player in state.players:
-        if player.name.lower() == name.strip().lower():
-            state.message = "This player already exists."
-            return add_player(state)
+        if (player.name.lower() == name.strip().lower()
+                and player.sport == sport):
+            state.message = "This player already exists in this sport."
+            return add_player(state, sport)
 
-    if (points < 0 or assists < 0 or rebounds < 0
+    if (stat_one < 0 or stat_two < 0 or stat_three < 0
             or games_played < 0):
         state.message = "Statistics cannot be negative."
-        return add_player(state)
+        return add_player(state, sport)
 
     new_player = Player(
         player_id=state.next_player_id,
         name=name.strip(),
         sport=sport,
-        points=points,
-        assists=assists,
-        rebounds=rebounds,
+        stat_one=stat_one,
+        stat_two=stat_two,
+        stat_three=stat_three,
         games_played=games_played
     )
 
@@ -186,26 +202,27 @@ def player_details(state: State, player_id: int) -> Page:
         state.message = "Player not found."
         return view_players(state)
 
+    stat_one, stat_two, stat_three = get_stat_labels(
+        player.sport
+    )
+
     return Page(state, [
         Header(player.name + "'s Statistics"),
         Text("Sport: " + player.sport),
-        Text("Points: " + str(player.points)),
-        Text("Assists: " + str(player.assists)),
-        Text("Rebounds: " + str(player.rebounds)),
+        Text(stat_one + ": " + str(player.stat_one)),
+        Text(stat_two + ": " + str(player.stat_two)),
+        Text(stat_three + ": " + str(player.stat_three)),
         Text("Games Played: " + str(player.games_played)),
-
         Button(
             "Edit Statistics",
             "edit_stats",
             {"player_id": player.player_id}
         ),
-
         Button(
             "Delete Player",
             "delete_player",
             {"player_id": player.player_id}
         ),
-
         Button("Back to Roster", "view_players"),
         Button("Back Home", "index")
     ])
@@ -220,24 +237,26 @@ def edit_stats(state: State, player_id: int) -> Page:
         state.message = "Player not found."
         return view_players(state)
 
+    stat_one, stat_two, stat_three = get_stat_labels(
+        player.sport
+    )
+
     return Page(state, [
         Header("Edit " + player.name + "'s Statistics"),
         Text("Enter the updated statistics."),
-        Text("Points:"),
-        TextBox("points", player.points, "number"),
-        Text("Assists:"),
-        TextBox("assists", player.assists, "number"),
-        Text("Rebounds:"),
-        TextBox("rebounds", player.rebounds, "number"),
+        Text(stat_one + ":"),
+        TextBox("stat_one", player.stat_one, "number"),
+        Text(stat_two + ":"),
+        TextBox("stat_two", player.stat_two, "number"),
+        Text(stat_three + ":"),
+        TextBox("stat_three", player.stat_three, "number"),
         Text("Games Played:"),
         TextBox("games_played", player.games_played, "number"),
-
         Button(
             "Save Changes",
             "update_stats",
             {"player_id": player.player_id}
         ),
-
         Button(
             "Cancel",
             "player_details",
@@ -248,8 +267,8 @@ def edit_stats(state: State, player_id: int) -> Page:
 
 @route
 def update_stats(state: State, player_id: int,
-                 points: int, assists: int,
-                 rebounds: int, games_played: int) -> Page:
+                 stat_one: int, stat_two: int,
+                 stat_three: int, games_played: int) -> Page:
     """Save updated statistics for a player."""
     player = find_player(state, player_id)
 
@@ -257,14 +276,14 @@ def update_stats(state: State, player_id: int,
         state.message = "Player not found."
         return view_players(state)
 
-    if (points < 0 or assists < 0 or rebounds < 0
+    if (stat_one < 0 or stat_two < 0 or stat_three < 0
             or games_played < 0):
         state.message = "Statistics cannot be negative."
         return edit_stats(state, player_id)
 
-    player.points = points
-    player.assists = assists
-    player.rebounds = rebounds
+    player.stat_one = stat_one
+    player.stat_two = stat_two
+    player.stat_three = stat_three
     player.games_played = games_played
 
     state.message = player.name + "'s statistics were updated!"
@@ -288,7 +307,7 @@ def delete_player(state: State, player_id: int) -> Page:
 
 @route
 def view_stats(state: State) -> Page:
-    """Calculate and display team statistics."""
+    """Calculate and display statistics for each sport."""
     content = [
         Header("Team Statistics"),
         Text(state.message)
@@ -297,35 +316,53 @@ def view_stats(state: State) -> Page:
     if len(state.players) == 0:
         content.append(Text("Add players to see statistics."))
     else:
-        total_points = 0
-        total_assists = 0
-        total_rebounds = 0
+        for sport in ["Basketball", "Soccer", "Softball"]:
+            sport_players = []
 
-        for player in state.players:
-            total_points += player.points
-            total_assists += player.assists
-            total_rebounds += player.rebounds
+            for player in state.players:
+                if player.sport == sport:
+                    sport_players.append(player)
 
-            content.append(Header(player.name))
-            content.append(Text(
-                "Points: " + str(player.points)
-                + " | Assists: " + str(player.assists)
-                + " | Rebounds: " + str(player.rebounds)
-            ))
+            if len(sport_players) > 0:
+                stat_one, stat_two, stat_three = (
+                    get_stat_labels(sport)
+                )
 
-            if player.games_played > 0:
-                average = player.points / player.games_played
-                content.append(Text(
-                    "Average Points Per Game: "
-                    + str(round(average, 2))
-                ))
+                total_one = 0
+                total_two = 0
+                total_three = 0
 
-        content.extend([
-            Header("Team Totals"),
-            Text("Total Points: " + str(total_points)),
-            Text("Total Assists: " + str(total_assists)),
-            Text("Total Rebounds: " + str(total_rebounds))
-        ])
+                content.append(Header(sport))
+
+                for player in sport_players:
+                    total_one += player.stat_one
+                    total_two += player.stat_two
+                    total_three += player.stat_three
+
+                    content.append(Text(
+                        player.name + ": "
+                        + stat_one + " " + str(player.stat_one)
+                        + " | " + stat_two + " "
+                        + str(player.stat_two)
+                        + " | " + stat_three + " "
+                        + str(player.stat_three)
+                    ))
+
+                    if player.games_played > 0:
+                        average = (
+                            player.stat_one / player.games_played
+                        )
+                        content.append(Text(
+                            "Average " + stat_one + " per game: "
+                            + str(round(average, 2))
+                        ))
+
+                content.extend([
+                    Header(sport + " Totals"),
+                    Text(stat_one + ": " + str(total_one)),
+                    Text(stat_two + ": " + str(total_two)),
+                    Text(stat_three + ": " + str(total_three))
+                ])
 
     content.extend([
         Button("Leaderboard", "leaderboard"),
@@ -337,47 +374,60 @@ def view_stats(state: State) -> Page:
 
 @route
 def leaderboard(state: State,
-                stat_category: str = "points") -> Page:
+                sport: str = "Basketball",
+                stat_category: str = "stat_one") -> Page:
     """Find the player with the highest selected statistic."""
+    stat_one, stat_two, stat_three = get_stat_labels(sport)
+
     content = [
         Header("Player Leaderboard"),
-        Text("Choose a statistic to compare:"),
+        Text("Choose a sport:"),
+        SelectBox("sport", [
+            "Basketball", "Soccer", "Softball"
+        ], sport),
+        Text("Choose a statistic:"),
         SelectBox("stat_category", [
-            "points", "assists", "rebounds"
+            "stat_one", "stat_two", "stat_three"
         ], stat_category),
         Button("Compare Players", "leaderboard")
     ]
 
-    if len(state.players) == 0:
-        content.append(Text("No players to compare yet."))
+    sport_players = []
+
+    for player in state.players:
+        if player.sport == sport:
+            sport_players.append(player)
+
+    if len(sport_players) == 0:
+        content.append(Text("No players to compare in this sport."))
     else:
-        highest_player = state.players[0]
+        highest_player = sport_players[0]
 
-        for player in state.players:
-            if stat_category == "points":
-                if player.points > highest_player.points:
+        for player in sport_players:
+            if stat_category == "stat_one":
+                if player.stat_one > highest_player.stat_one:
                     highest_player = player
-            elif stat_category == "assists":
-                if player.assists > highest_player.assists:
+            elif stat_category == "stat_two":
+                if player.stat_two > highest_player.stat_two:
                     highest_player = player
-            elif stat_category == "rebounds":
-                if player.rebounds > highest_player.rebounds:
+            elif stat_category == "stat_three":
+                if player.stat_three > highest_player.stat_three:
                     highest_player = player
 
-        if stat_category == "points":
-            highest_value = highest_player.points
-        elif stat_category == "assists":
-            highest_value = highest_player.assists
+        if stat_category == "stat_one":
+            highest_value = highest_player.stat_one
+            label = stat_one
+        elif stat_category == "stat_two":
+            highest_value = highest_player.stat_two
+            label = stat_two
         else:
-            highest_value = highest_player.rebounds
+            highest_value = highest_player.stat_three
+            label = stat_three
 
         content.extend([
             Header("Top Performer"),
             Text(highest_player.name),
-            Text(
-                "Highest " + stat_category + ": "
-                + str(highest_value)
-            )
+            Text("Highest " + label + ": " + str(highest_value))
         ])
 
     content.append(Button("Back Home", "index"))
@@ -385,5 +435,6 @@ def leaderboard(state: State,
     return Page(state, content)
 
 
-start_server(State())
+if __name__ == "__main__":
+    start_server(State())
 
